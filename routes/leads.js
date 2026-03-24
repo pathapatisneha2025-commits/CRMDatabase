@@ -60,5 +60,30 @@ router.post('/bulk', async (req, res) => {
     res.status(500).json({ success: false })
   }
 })
+router.patch('/status/:id', async (req, res) => {
+  const leadId = parseInt(req.params.id);
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ success: false, message: 'Status is required' });
+  }
+
+  try {
+    // Update the status in DB
+    const result = await pool.query(
+      'UPDATE crmeleads SET status = $1 WHERE id = $2 RETURNING *',
+      [status, leadId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    res.json({ success: true, lead: result.rows[0] });
+  } catch (err) {
+    console.error('Error updating lead status:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 
 module.exports = router;
