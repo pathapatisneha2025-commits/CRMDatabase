@@ -90,25 +90,28 @@ router.get('/pending', async (req, res) => {
 // -----------------
 // APPROVE EMPLOYEE (Admin)
 // -----------------
-router.put('/:id/approve', async (req, res) => {
+// -----------------
+// UPDATE EMPLOYEE STATUS (Admin)
+// -----------------
+router.put('/:id/status', async (req, res) => {
   const { id } = req.params;
-  try {
-    await pool.query("UPDATE crmemployee SET status='approved' WHERE id=$1", [id]);
-    res.json({ message: 'Employee approved' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  const { status } = req.body; // expected: 'approved' or 'rejected'
 
-// -----------------
-// REJECT EMPLOYEE (Admin)
-// -----------------
-router.put('/:id/reject', async (req, res) => {
-  const { id } = req.params;
+  if (!['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ message: "Invalid status. Use 'approved' or 'rejected'." });
+  }
+
   try {
-    await pool.query("UPDATE crmemployee SET status='rejected' WHERE id=$1", [id]);
-    res.json({ message: 'Employee rejected' });
+    const result = await pool.query(
+      "UPDATE crmemployee SET status=$1 WHERE id=$2 RETURNING id, name, email, role, status",
+      [status, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    res.json({ message: `Employee ${status}`, employee: result.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
