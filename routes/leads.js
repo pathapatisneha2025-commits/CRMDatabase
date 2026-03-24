@@ -71,7 +71,7 @@ router.patch('/status/:id', async (req, res) => {
   try {
     // Update the status in DB
     const result = await pool.query(
-      'UPDATE crmeleads SET status = $1 WHERE id = $2 RETURNING *',
+      'UPDATE leads SET status = $1 WHERE id = $2 RETURNING *',
       [status, leadId]
     );
 
