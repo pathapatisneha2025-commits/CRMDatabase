@@ -39,4 +39,26 @@ router.post('/add', async (req, res) => {
   }
 });
 
+
+
+// BULK INSERT LEADS
+router.post('/bulk', async (req, res) => {
+  const { leads } = req.body
+
+  try {
+    for (let lead of leads) {
+      await pool.query(
+        `INSERT INTO leads (name, email, phone, source, status, assigned_to)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [lead.name, lead.email, lead.phone, lead.source, lead.status, lead.assigned_to]
+      )
+    }
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false })
+  }
+})
+
 module.exports = router;
