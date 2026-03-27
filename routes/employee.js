@@ -26,7 +26,7 @@ const { name, email, phone, password, role } = req.body;
       `INSERT INTO crmemployee (name, email, phone, password, role, status)
        VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING id, name, email, phone, role, status, created_at`, // added phone
-      [name, email, phone, hashedPassword] // added phone
+      [name, email, phone, hashedPassword,role] // added phone
     );
 
     res.json({
