@@ -43,7 +43,7 @@ const { name, email, phone, password, role } = req.body;
 // LOGIN
 // -----------------
 router.post('/login', async (req, res) => {
-  const { email, password, role } = req.body; // get role from frontend
+  const { email, password } = req.body; // only email & password from frontend
 
   try {
     const emp = await pool.query(
@@ -62,13 +62,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
 
-    // Role validation
-    if (employee.role !== role) {
-      return res.status(403).json({ message: `You are not registered as ${role}` });
-    }
-
     // Only check status if employee (not admin)
-    if (role === 'employee') {
+    if (employee.role === 'employee') {
       if (employee.status === 'pending') {
         return res.status(403).json({ message: 'Wait for admin approval' });
       }
