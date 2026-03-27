@@ -43,7 +43,7 @@ const { name, email, phone, password, role } = req.body;
 // LOGIN
 // -----------------
 router.post('/login', async (req, res) => {
-  const { email, password, role } = req.body; // get role from frontend
+  let { email, password, role } = req.body;
 
   try {
     const emp = await pool.query(
@@ -57,13 +57,18 @@ router.post('/login', async (req, res) => {
 
     const employee = emp.rows[0];
 
+    // Compare password
     const valid = await bcrypt.compare(password, employee.password);
     if (!valid) {
       return res.status(400).json({ message: 'Invalid password' });
     }
 
-    // Check that role matches
-    if (employee.role !== role) {
+    // Normalize role
+    role = role.toLowerCase().trim();
+    const dbRole = employee.role.toLowerCase().trim();
+
+    // Check role
+    if (dbRole !== role) {
       return res.status(403).json({ message: `You are not registered as ${role}` });
     }
 
@@ -77,13 +82,13 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Send user info back
+    // Success response
     res.json({
       id: employee.id,
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
-      role: employee.role.toLowerCase(), // lowercase helps frontend redirect
+      role: dbRole, // always lowercase
       status: employee.status,
     });
 
