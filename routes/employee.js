@@ -43,7 +43,7 @@ const { name, email, phone, password, role } = req.body;
 // LOGIN
 // -----------------
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body; // only email & password from frontend
+  const { email, password, role } = req.body; // get role from frontend
 
   try {
     const emp = await pool.query(
@@ -62,8 +62,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
 
-    // Only check status if employee (not admin)
-    if (employee.role === 'employee') {
+    // Check that role matches
+    if (employee.role !== role) {
+      return res.status(403).json({ message: `You are not registered as ${role}` });
+    }
+
+    // Only check status if employee
+    if (role === 'employee') {
       if (employee.status === 'pending') {
         return res.status(403).json({ message: 'Wait for admin approval' });
       }
@@ -72,15 +77,16 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Return user data
+    // Send user info back
     res.json({
       id: employee.id,
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
-      role: employee.role,
+      role: employee.role.toLowerCase(), // lowercase helps frontend redirect
       status: employee.status,
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
