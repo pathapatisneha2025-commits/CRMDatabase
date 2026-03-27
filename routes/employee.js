@@ -7,8 +7,7 @@ const bcrypt = require('bcrypt');
 // SIGNUP
 // -----------------
 router.post('/signup', async (req, res) => {
-  const { name, email, password } = req.body;
-
+const { name, email, phone, password, role } = req.body;
   try {
     // Check if email exists
     const existing = await pool.query(
@@ -22,14 +21,18 @@ router.post('/signup', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert employee with status pending
+    // Insert employee with phone and status pending
     const newEmp = await pool.query(
-      `INSERT INTO crmemployee (name, email, password, role, status)
-       VALUES ($1, $2, $3, 'user', 'pending') RETURNING id, name, email, role, status, created_at`,
-      [name, email, hashedPassword]
+      `INSERT INTO crmemployee (name, email, phone, password, role, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
+       RETURNING id, name, email, phone, role, status, created_at`, // added phone
+      [name, email, phone, hashedPassword] // added phone
     );
 
-    res.json({ message: 'Signup successful, wait for admin approval', employee: newEmp.rows[0] });
+    res.json({
+      message: 'Signup successful, wait for admin approval',
+      employee: newEmp.rows[0]
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -63,6 +66,7 @@ router.post('/login', async (req, res) => {
       id: emp.rows[0].id,
       name: emp.rows[0].name,
       email: emp.rows[0].email,
+      phone: emp.rows[0].phone, // added phone
       role: emp.rows[0].role,
       status: emp.rows[0].status
     });
@@ -78,7 +82,7 @@ router.post('/login', async (req, res) => {
 router.get('/pending', async (req, res) => {
   try {
     const pending = await pool.query(
-      "SELECT id, name, email, role, status, created_at FROM crmemployee WHERE status = 'pending' ORDER BY created_at DESC"
+      "SELECT id, name, email, phone, role, status, created_at FROM crmemployee WHERE status = 'pending' ORDER BY created_at DESC" // added phone
     );
     res.json(pending.rows);
   } catch (err) {
@@ -87,9 +91,6 @@ router.get('/pending', async (req, res) => {
   }
 });
 
-// -----------------
-// APPROVE EMPLOYEE (Admin)
-// -----------------
 // -----------------
 // UPDATE EMPLOYEE STATUS (Admin)
 // -----------------
@@ -103,7 +104,7 @@ router.put('/:id/status', async (req, res) => {
 
   try {
     const result = await pool.query(
-      "UPDATE crmemployee SET status=$1 WHERE id=$2 RETURNING id, name, email, role, status",
+      "UPDATE crmemployee SET status=$1 WHERE id=$2 RETURNING id, name, email, phone, role, status", // added phone
       [status, id]
     );
 
