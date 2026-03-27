@@ -43,7 +43,7 @@ const { name, email, phone, password, role } = req.body;
 // LOGIN
 // -----------------
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body; // get role from frontend
 
   try {
     const emp = await pool.query(
@@ -51,24 +51,40 @@ router.post('/login', async (req, res) => {
       [email]
     );
 
-    if (emp.rows.length === 0) return res.status(400).json({ message: 'Invalid email' });
+    if (emp.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid email' });
+    }
 
-    const valid = await bcrypt.compare(password, emp.rows[0].password);
-    if (!valid) return res.status(400).json({ message: 'Invalid password' });
+    const employee = emp.rows[0];
 
-    // Check status
-    if (emp.rows[0].status === 'pending')
-      return res.status(403).json({ message: 'Wait for admin approval' });
-    if (emp.rows[0].status === 'rejected')
-      return res.status(403).json({ message: 'Your account was rejected by admin' });
+    const valid = await bcrypt.compare(password, employee.password);
+    if (!valid) {
+      return res.status(400).json({ message: 'Invalid password' });
+    }
 
+    // Role validation
+    if (employee.role !== role) {
+      return res.status(403).json({ message: `You are not registered as ${role}` });
+    }
+
+    // Only check status if employee (not admin)
+    if (role === 'employee') {
+      if (employee.status === 'pending') {
+        return res.status(403).json({ message: 'Wait for admin approval' });
+      }
+      if (employee.status === 'rejected') {
+        return res.status(403).json({ message: 'Your account was rejected by admin' });
+      }
+    }
+
+    // Return user data
     res.json({
-      id: emp.rows[0].id,
-      name: emp.rows[0].name,
-      email: emp.rows[0].email,
-      phone: emp.rows[0].phone, // added phone
-      role: emp.rows[0].role,
-      status: emp.rows[0].status
+      id: employee.id,
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone,
+      role: employee.role,
+      status: employee.status,
     });
   } catch (err) {
     console.error(err);
