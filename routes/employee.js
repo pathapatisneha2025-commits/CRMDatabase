@@ -82,15 +82,20 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Success response
-    res.json({
-      id: employee.id,
-      name: employee.name,
-      email: employee.email,
-      phone: employee.phone,
-      role: dbRole, // always lowercase
-      status: employee.status,
-    });
+  // Success response
+const responsePayload = {
+  id: employee.id,
+  name: employee.name,
+  email: employee.email,
+  phone: employee.phone,
+  role: dbRole, // always lowercase
+  status: employee.status,
+};
+
+// Log the response
+console.log("Login response being sent:", responsePayload);
+
+res.json(responsePayload);
 
   } catch (err) {
     console.error(err);
