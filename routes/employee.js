@@ -92,7 +92,17 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+router.get('/all', async (req, res) => {
+  try {
+    const allEmployees = await pool.query(
+      "SELECT id, name, email, phone, role, status, created_at FROM crmemployee ORDER BY created_at DESC"
+    );
+    res.json(allEmployees.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 // -----------------
 // GET PENDING EMPLOYEES (Admin)
 // -----------------
