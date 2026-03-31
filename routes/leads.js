@@ -19,7 +19,7 @@ router.get('/all', async (req, res) => {
 // CREATE LEAD
 // -----------------
 router.post('/add', async (req, res) => {
-  const { name, email, phone, source, assignedTo } = req.body;
+  const { name, email, phone, source, assignedTo, remarks } = req.body;
 
   if (!name || !email) {
     return res.status(400).json({ success: false, message: 'Name and email are required' });
@@ -27,9 +27,10 @@ router.post('/add', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO leads (name, email, phone, source, assigned_to)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [name, email, phone || '', source || 'manual', assignedTo || null]
+      `INSERT INTO leads (name, email, phone, source, assigned_to, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [name, email, phone || '', source || 'manual', assignedTo || null, remarks || '']
     );
 
     res.json({ success: true, lead: result.rows[0] });
