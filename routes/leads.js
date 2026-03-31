@@ -42,23 +42,30 @@ router.post('/add', async (req, res) => {
 });
 // BULK INSERT LEADS
 router.post('/bulk', async (req, res) => {
-  const { leads } = req.body
+  const { leads } = req.body;
 
   try {
     for (let lead of leads) {
       await pool.query(
         `INSERT INTO leads (name, email, phone, source, status, assigned_to)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [lead.name, lead.email, lead.phone, lead.source, lead.status, lead.assigned_to]
-      )
+        [
+          lead.name || null,
+          lead.email || null,
+          lead.phone || null,
+          lead.source || null,
+          lead.status || null,
+          lead.assigned_to ? parseInt(lead.assigned_to) : null // convert empty string to null
+        ]
+      );
     }
 
-    res.json({ success: true })
+    res.json({ success: true });
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ success: false })
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
-})
+});
 router.patch('/status/:id', async (req, res) => {
   const leadId = parseInt(req.params.id);
   const { status } = req.body;
