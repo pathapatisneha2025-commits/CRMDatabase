@@ -92,4 +92,25 @@ router.patch('/status/:id', async (req, res) => {
   }
 });
 
+router.get('/by-employee/:id', async (req, res) => {
+  const empId = parseInt(req.params.id);
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM leads
+       WHERE assigned_to = $1
+       ORDER BY created_date DESC`,
+      [empId]
+    );
+
+    res.json({
+      success: true,
+      leads: result.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
