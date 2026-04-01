@@ -47,15 +47,15 @@ router.post('/bulk', async (req, res) => {
   try {
     for (let lead of leads) {
       await pool.query(
-        `INSERT INTO leads (name, email, phone, source, status, assigned_to)
+        `INSERT INTO leads (name, phone, source, status, assigned_to, remark)
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           lead.name || null,
-          lead.email || null,
           lead.phone || null,
           lead.source || null,
           lead.status || null,
-          lead.assigned_to ? parseInt(lead.assigned_to) : null // convert empty string to null
+          lead.assigned_to ? parseInt(lead.assigned_to) : null,
+          lead.remark || null
         ]
       );
     }
