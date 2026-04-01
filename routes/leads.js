@@ -47,51 +47,59 @@ router.post('/add', async (req, res) => {
 router.post("/send-bulkwhatsapp", async (req, res) => {
   const { leadIds, template } = req.body;
 
+  if (!leadIds || !template) {
+    return res.status(400).json({ success: false, error: "Missing leadIds or template" });
+  }
+
   try {
-    // Get leads from DB
     const leadsQuery = await pool.query(
       "SELECT id, name, phone FROM leads WHERE id = ANY($1::int[])",
       [leadIds.map(id => parseInt(id))]
     );
 
     for (let lead of leadsQuery.rows) {
+      let message = "";
 
-      // Map template to message content
-      if (template === "Welcome Template") message = `Hello ${lead.name}, welcome!`;
-      if (template === "Follow-up Template") message = `Hi ${lead.name}, following up with you.`;
-      if (template === "Promo Template") message = `Hello ${lead.name}, check our promo!`;
-      if (template === "Reminder Template") message = `Hi ${lead.name}, just a reminder.`;
-let message = template;
+      // ===== TYPE 1: Named Templates =====
+      if (template === "Welcome Template") {
+        message = `Hello ${lead.name}, welcome!`;
+      } else if (template === "Follow-up Template") {
+        message = `Hi ${lead.name}, following up with you.`;
+      } else if (template === "Promo Template") {
+        message = `Hello ${lead.name}, check our promo!`;
+      } else if (template === "Reminder Template") {
+        message = `Hi ${lead.name}, just a reminder.`;
+      } 
+      // ===== TYPE 2: {name} Templates =====
+      else {
+        message = template.replace("{name}", lead.name || "");
+      }
 
-// Replace {name} placeholder if exists
-if (template.includes("{name}")) {
-  message = template.replace("{name}", lead.name || "");
-}
+      // Safety check
+      message = message.trim();
+      if (!message) {
+        console.log(`Skipping lead ${lead.id} (empty message)`);
+        continue;
+      }
 
-// Trim to remove extra spaces
-message = message.trim();
-
-if (!message) {
-  console.error(`Skipping lead ${lead.id} because message is empty`);
-  continue; // skip this lead
-}
-      // Send WhatsApp message via Twilio
+      // Send WhatsApp via Twilio
       await client.messages.create({
         from: whatsappFrom,
         to: `whatsapp:${lead.phone}`,
         body: message,
       });
 
-      // Save to message history
+      // Store in DB
       await pool.query(
         "INSERT INTO whatsapp_messages (lead_id, template, status, sent_at) VALUES ($1,$2,$3,NOW())",
         [lead.id, template, "Sent"]
       );
     }
 
-    res.json({ success: true, message: "Messages sent!" });
+    res.json({ success: true, message: "Messages sent successfully" });
+
   } catch (err) {
-    console.error(err);
+    console.error("Bulk WhatsApp Error:", err);
     res.status(500).json({ success: false, error: "Failed to send messages" });
   }
 });
