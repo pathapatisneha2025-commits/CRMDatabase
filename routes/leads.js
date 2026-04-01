@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db'); // PostgreSQL pool connection
+const twilio = require("twilio");
 
+const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM;
 // -----------------
 // GET ALL LEADS
 // -----------------
@@ -38,6 +41,46 @@ router.post('/add', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.post("/send-bulkwhatsapp", async (req, res) => {
+  const { leadIds, template } = req.body;
+
+  try {
+    // Get leads from DB
+    const leadsQuery = await pool.query(
+      "SELECT id, name, phone FROM leads WHERE id = ANY($1::int[])",
+      [leadIds.map(id => parseInt(id))]
+    );
+
+    for (let lead of leadsQuery.rows) {
+      let message = "";
+
+      // Map template to message content
+      if (template === "Welcome Template") message = `Hello ${lead.name}, welcome!`;
+      if (template === "Follow-up Template") message = `Hi ${lead.name}, following up with you.`;
+      if (template === "Promo Template") message = `Hello ${lead.name}, check our promo!`;
+      if (template === "Reminder Template") message = `Hi ${lead.name}, just a reminder.`;
+
+      // Send WhatsApp message via Twilio
+      await client.messages.create({
+        from: whatsappFrom,
+        to: `whatsapp:${lead.phone}`,
+        body: message,
+      });
+
+      // Save to message history
+      await pool.query(
+        "INSERT INTO whatsapp_messages (lead_id, template, status, sent_at) VALUES ($1,$2,$3,NOW())",
+        [lead.id, template, "Sent"]
+      );
+    }
+
+    res.json({ success: true, message: "Messages sent!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: "Failed to send messages" });
   }
 });
 // BULK INSERT LEADS
