@@ -47,7 +47,7 @@ router.post('/bulk', async (req, res) => {
   try {
     for (let lead of leads) {
       await pool.query(
-        `INSERT INTO leads (name, phone, source, status, assigned_to, remark)
+        `INSERT INTO leads (name, phone, source, status, assigned_to, notes)
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           lead.name || null,
