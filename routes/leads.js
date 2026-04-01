@@ -73,8 +73,10 @@ router.post("/bulk-assign", async (req, res) => {
     return res.status(400).json({ error: "Invalid request body" });
   }
 
+  // Filter out invalid IDs just in case
+  const validIds = leadIds.filter(id => typeof id === "string" && id.length > 0);
+
   try {
-    // Update multiple leads at once
     const query = `
       UPDATE leads
       SET assigned_to = $1
@@ -82,7 +84,7 @@ router.post("/bulk-assign", async (req, res) => {
       RETURNING id, assigned_to
     `;
 
-    const values = [employeeId, leadIds];
+    const values = [employeeId, validIds];
     const result = await pool.query(query, values);
 
     res.json({ success: true, updated: result.rowCount, leads: result.rows });
