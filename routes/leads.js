@@ -83,6 +83,23 @@ router.post("/send-bulkwhatsapp", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to send messages" });
   }
 });
+// GET all WhatsApp messages
+router.get("/whatsapp-messages", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT wm.id, wm.lead_id, l.name as lead_name, l.phone, wm.template, wm.status, wm.sent_at
+      FROM whatsapp_messages wm
+      JOIN leads l ON l.id = wm.lead_id
+      ORDER BY wm.sent_at DESC
+      LIMIT 100
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching WhatsApp messages:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch WhatsApp messages" });
+  }
+});
 // BULK INSERT LEADS
 router.post('/bulk', async (req, res) => {
   const { leads } = req.body;
