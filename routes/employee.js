@@ -156,4 +156,45 @@ router.put('/:id/status', async (req, res) => {
   }
 });
 
+
+
+// GET /api/employee-performance
+router.get("/employee-performance", async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        e.id AS employee_id,
+        e.name AS employee_name,
+        COUNT(l.id) AS total_leads,
+        COUNT(CASE WHEN l.status = 'Converted' THEN 1 END) AS converted,
+        COUNT(CASE WHEN l.status != 'Converted' AND l.status != 'Not Interested' THEN 1 END) AS pending
+      FROM crmemployee e
+      LEFT JOIN leads l ON l.assigned_to = e.id
+      WHERE e.status = 'approved'
+      GROUP BY e.id, e.name
+      ORDER BY e.name
+    `;
+
+    const result = await pool.query(query);
+
+    // Return structured response
+    res.json(result.rows.map(row => ({
+      employee_id: row.employee_id,
+      employee_name: row.employee_name,
+      total_leads: Number(row.total_leads),
+      converted: Number(row.converted),
+      pending: Number(row.pending),
+      conversion_rate: row.total_leads > 0 
+        ? Math.round((row.converted / row.total_leads) * 100) 
+        : 0
+    })));
+
+  } catch (err) {
+    console.error("Employee performance error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
 module.exports = router;
