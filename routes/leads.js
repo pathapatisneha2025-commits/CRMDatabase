@@ -55,14 +55,26 @@ router.post("/send-bulkwhatsapp", async (req, res) => {
     );
 
     for (let lead of leadsQuery.rows) {
-      let message = "";
 
       // Map template to message content
       if (template === "Welcome Template") message = `Hello ${lead.name}, welcome!`;
       if (template === "Follow-up Template") message = `Hi ${lead.name}, following up with you.`;
       if (template === "Promo Template") message = `Hello ${lead.name}, check our promo!`;
       if (template === "Reminder Template") message = `Hi ${lead.name}, just a reminder.`;
+let message = template;
 
+// Replace {name} placeholder if exists
+if (template.includes("{name}")) {
+  message = template.replace("{name}", lead.name || "");
+}
+
+// Trim to remove extra spaces
+message = message.trim();
+
+if (!message) {
+  console.error(`Skipping lead ${lead.id} because message is empty`);
+  continue; // skip this lead
+}
       // Send WhatsApp message via Twilio
       await client.messages.create({
         from: whatsappFrom,
