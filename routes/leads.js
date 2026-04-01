@@ -69,22 +69,23 @@ router.post('/bulk', async (req, res) => {
 router.post("/bulk-assign", async (req, res) => {
   const { leadIds, employeeId } = req.body;
 
-  if (!Array.isArray(leadIds) || leadIds.length === 0 || !employeeId) {
+  if (!Array.isArray(leadIds) || leadIds.length === 0 || employeeId == null) {
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  // Filter out invalid IDs just in case
-  const validIds = leadIds.filter(id => typeof id === "string" && id.length > 0);
+  // Convert IDs to integers
+  const validIds = leadIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+  const empId = parseInt(employeeId);
 
   try {
     const query = `
       UPDATE leads
       SET assigned_to = $1
-      WHERE id = ANY($2::uuid[])
+      WHERE id = ANY($2::int[])
       RETURNING id, assigned_to
     `;
 
-    const values = [employeeId, validIds];
+    const values = [empId, validIds];
     const result = await pool.query(query, values);
 
     res.json({ success: true, updated: result.rowCount, leads: result.rows });
