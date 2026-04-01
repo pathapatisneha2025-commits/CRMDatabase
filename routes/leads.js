@@ -66,7 +66,31 @@ router.post('/bulk', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+router.post("/bulk-assign", async (req, res) => {
+  const { leadIds, employeeId } = req.body;
 
+  if (!Array.isArray(leadIds) || leadIds.length === 0 || !employeeId) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
+
+  try {
+    // Update multiple leads at once
+    const query = `
+      UPDATE leads
+      SET assigned_to = $1
+      WHERE id = ANY($2::uuid[])
+      RETURNING id, assigned_to
+    `;
+
+    const values = [employeeId, leadIds];
+    const result = await pool.query(query, values);
+
+    res.json({ success: true, updated: result.rowCount, leads: result.rows });
+  } catch (err) {
+    console.error("Bulk assign error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 // -----------------
 // UPDATE LEAD (status + remarks)
 // -----------------
