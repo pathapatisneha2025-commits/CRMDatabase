@@ -66,6 +66,39 @@ router.post('/bulk', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// -----------------
+// UPDATE LEAD (status + remarks)
+// -----------------
+router.put('/update/:id', async (req, res) => {
+  const leadId = parseInt(req.params.id);
+  const { status, remark } = req.body; // match frontend keys
+
+  if (!status && !remark) {
+    return res.status(400).json({ success: false, message: 'Status or remark is required' });
+  }
+
+  try {
+    // Update the lead in DB
+    const result = await pool.query(
+      `UPDATE leads
+       SET status = COALESCE($1, status),
+           notes = COALESCE($2, notes)
+       WHERE id = $3
+       RETURNING *`,
+      [status || null, remark || null, leadId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    res.json({ success: true, lead: result.rows[0] });
+  } catch (err) {
+    console.error('Error updating lead:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 router.patch('/status/:id', async (req, res) => {
   const leadId = parseInt(req.params.id);
   const { status } = req.body;
